@@ -25,3 +25,5 @@ secrets.toml
 */assertion.log
 *results/
 .venv/
+examples/storm_examples/collection/my_documents/storage.sqlite
+knowledge_storm/temdatas/*
