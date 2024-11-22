@@ -25,11 +25,8 @@ args.output_dir/
         storm_gen_article.txt           # Final article generated
         storm_gen_article_polished.txt  # Polished final article (if args.do_polish_article is True)
 """
-import sys
-
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
-sys.path.append('D:\STORM\storm-main')
 
 import os
 from argparse import ArgumentParser
@@ -39,13 +36,85 @@ from knowledge_storm.rm import VectorRM
 from knowledge_storm.lm import OpenAIModel, AzureOpenAIModel
 from knowledge_storm.utils import load_api_key, QdrantVectorStoreManager
 
-# from qdrant_client import QdrantClient
-# from qdrant_client import models, QdrantClient
-# from sentence_transformers import SentenceTransformer
-
-#import csv
+import csv
 import openai
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+# Example usage
+# qdrant_client = QdrantClient(path='path_to_vector_store')
+# convert_markdown_to_corpus_and_add_to_qdrant('path_to_markdown.md', qdrant_client, 'my_collection', model)
+
+# Convert the markdown file to the required format and save it in the specified directory
+
+# def convert_markdown_to_csv(markdown_file_path, csv_file_path):
+#     """
+#     Convert a markdown document to a CSV format suitable for the project.
+
+#     Args:
+#         markdown_file_path (str): Path to the markdown file.
+#         csv_file_path (str): Path where the CSV file will be saved.
+#     """
+#     import pandas as pd
+
+#     # Read the markdown file
+#     with open(markdown_file_path, 'r', encoding='utf-8',errors='replace') as file:
+#         content = file.read()
+
+#     # Split the content into sections based on headers
+#     sections = content.split('\n# ')
+#     documents = []
+
+#     for section in sections:
+#         lines = section.split('\n')
+#         title = lines[0].strip() if lines else "Untitled"
+#         body = "\n".join(lines[1:]).strip()
+#         url = f"doc-{hash(title)}"  # Generate a unique URL based on the title
+#         description = body[:100]  # Use the first 100 characters as a description
+
+#         documents.append({
+#             "content": body,
+#             "title": title,
+#             "url": url,
+#             "description": description
+#         })
+
+#     # Create a DataFrame and save it as a CSV
+#     df = pd.DataFrame(documents)
+#     df.to_csv(csv_file_path, index=False, encoding='utf-8-sig',errors='replace')
+
+# # Example usage
+# convert_markdown_to_csv(
+#     markdown_file_path='D:\STORM\storm-main\whzgd6350f90c1b2e4.md',
+#     csv_file_path='D:/STORM/storm-main/examples/storm_examples/converted_document2.csv'
+# )
+# import pandas as pd
+
+# def merge_csv_files(file_path1, file_path2, output_file_path):
+#     """
+#     Merge two CSV files with the same format into a single CSV file.
+
+#     Args:
+#         file_path1 (str): Path to the first CSV file.
+#         file_path2 (str): Path to the second CSV file.
+#         output_file_path (str): Path where the merged CSV file will be saved.
+#     """
+#     # Read the CSV files
+#     df1 = pd.read_csv(file_path1, encoding='utf-8')
+#     df2 = pd.read_csv(file_path2, encoding='utf-8')
+
+#     # Concatenate the DataFrames
+#     merged_df = pd.concat([df1, df2], ignore_index=True)
+
+#     # Save the merged DataFrame to a new CSV file
+#     merged_df.to_csv(output_file_path, index=False, encoding='utf-8-sig', errors='replace')
+
+# # Example usage
+# merge_csv_files(
+#     file_path1='D:/STORM/storm-main/examples/storm_examples/converted_document.csv',
+#     file_path2='D:/STORM/storm-main/examples/storm_examples/converted_document2.csv',
+#     output_file_path='D:/STORM/storm-main/examples/storm_examples/merged_documents.csv'
+# )
 
 def main(args):
     args.vector_db_mode = 'offline'
@@ -85,6 +154,11 @@ def main(args):
     outline_gen_lm = ModelClass(model=gpt_4_model_name, max_tokens=400, **openai_kwargs)
     article_gen_lm = ModelClass(model=gpt_4_model_name, max_tokens=700, **openai_kwargs)
     article_polish_lm = ModelClass(model=gpt_4_model_name, max_tokens=4000, **openai_kwargs)
+    conv_simulator_lm = OpenAIModel(model='gpt-4o-mini', max_tokens=500, **openai_kwargs)
+    question_asker_lm = OpenAIModel(model='gpt-4o-mini', max_tokens=500, **openai_kwargs)
+    outline_gen_lm = OpenAIModel(model='gpt-4-0125-preview', max_tokens=400, **openai_kwargs)
+    article_gen_lm = OpenAIModel(model='gpt-4-0125-preview', max_tokens=700, **openai_kwargs)
+    article_polish_lm = OpenAIModel(model='gpt-4-0125-preview', max_tokens=4000, **openai_kwargs)
 
     engine_lm_configs.set_conv_simulator_lm(conv_simulator_lm)
     engine_lm_configs.set_question_asker_lm(question_asker_lm)
@@ -100,11 +174,13 @@ def main(args):
         search_top_k=args.search_top_k,
         max_thread_num=args.max_thread_num,
     )
+
+    
 #Create / update the vector store with the documents in the csv file
     if args.csv_file_path:
         kwargs = {
             'file_path': args.csv_file_path,
-            'content_column': 'summaries',
+            'content_column': 'content',
             'title_column': 'title',
             'url_column': 'url',
             'desc_column': 'description',
@@ -135,11 +211,22 @@ def main(args):
     elif args.vector_db_mode == 'online':
         rm.init_online_vector_db(url=args.online_vector_db_url, api_key=os.getenv('QDRANT_API_KEY'))
 
+    # Update the vector store with the documents in the csv file
+    if args.update_vector_store:
+        rm.update_vector_store(
+            file_path=args.csv_file_path,
+            content_column='content',
+            title_column='title',
+            url_column='url',
+            desc_column='description',
+            batch_size=args.embed_batch_size
+        )
+
     # Initialize the STORM Wiki Runner
     runner = STORMWikiRunner(engine_args, engine_lm_configs, rm)
 
     # run the pipeline
-    topic = "The progress of multimodal models in computer vision"
+    topic = input("Enter the topic: ")
     runner.run(
         topic=topic,
         do_research=args.do_research,
@@ -150,10 +237,11 @@ def main(args):
     runner.post_run()
     runner.summary()
 
-
+import argparse
 if __name__ == "__main__":
     parser = ArgumentParser()
     # global arguments
+    parser = argparse.ArgumentParser(description="Run STORM Wiki GPT with VectorRM")
     parser.add_argument('--output-dir', type=str, default='./results/gpt_retrieval',
                         help='Directory to store the outputs.')
     parser.add_argument('--max-thread-num', type=int, default=3,
@@ -200,4 +288,5 @@ if __name__ == "__main__":
                         help='Top k collected references for each section title.')
     parser.add_argument('--remove-duplicate', action='store_true',
                         help='If True, remove duplicate content from the article.')
+    parser.add_argument('--update-vector-store', action='store_true', help='Update the vector store if set')
     main(parser.parse_args())

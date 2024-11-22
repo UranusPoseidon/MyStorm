@@ -3,15 +3,7 @@
 ## Importance in Computer Vision
 # Historical Background
 ## Early Developments
-## Transition from Monomodal to Multimodal Models
 ## Key Milestones
-# Theoretical Advancements
-## Multimodal Transformers
-### Multi-modal Multi-scale Transformer (M2TR)
-### Integration of Frequency and RGB Features
-## From Monomodal to Multimodal Frameworks
-### Auto-Encoders and Generative Adversarial Networks (GANs)
-## Application of Transformers in Vision Tasks
 # Technical Foundations
 ## Architecture of Multimodal Models
 ### Neural Networks
@@ -23,22 +15,27 @@
 ## Improved Model Architectures
 ## Enhanced Data Processing Techniques
 ## Integration of New Modalities
-# Real-World Applications
-## Autonomous Driving
-## Airborne Navigation Systems
-## Augmented Reality
-## Healthcare Diagnostics
-### Medical Imaging and Image-Guided Surgery
+## Key Theoretical Advancements in Transformers
+# Applications in Computer Vision
+## Healthcare
+### Medical Imaging and Diagnostics
 ### Medical Vision Language Learner (MedViLL)
 ## Robotics
+### Environment Interpretation and Interaction
+### Dynamic Systems and 3D Modeling
+## Retail and E-commerce
+### Product Representation and Recommendation
+## Autonomous Vehicles
+### Perception and Obstacle Detection
+## Content Creation and Media
+### Advertisement and Audience Engagement
 # Challenges and Limitations
-## Computational Requirements and Deployment Difficulties
-## Handling Open Set Samples
-## Data Association Problems in Tracking
-## Bias and Fairness Issues
-# Ethical Considerations
-## Bias and Fairness in Algorithmic Decision Systems
-## Privacy and Data Use Concerns
+## Data Heterogeneity
+## Computational Complexity
+## Scalability Issues
+## Interpretability and Transparency
+## Algorithmic Bias and Ethical Concerns
+## Domain Adaptation and Overfitting
 # Future Directions
 ## Trends in Model Development
 ## Emerging Applications
